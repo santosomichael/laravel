@@ -17,7 +17,24 @@ class MeetingController extends Controller
     public function index()
     {
         //
-        return "It works!";
+        $meeting = [
+            'title' => 'Title',
+            'description' => 'Description',
+            'time' => 'Time',
+            'user_id' => 'User Id',
+            'view_meeting' => [
+                'href'=> 'api/v1/meeting/1',
+                'method' => 'GET'
+            ]
+        ];
+        $response = [
+            'msg' => 'List of all Meeting',
+            'meeting' => [
+                $meeting, 
+                $meeting
+            ]
+        ];
+        return response()->json($response, 200);
     }
     
     /**
@@ -29,7 +46,26 @@ class MeetingController extends Controller
     public function store(Request $request)
     {
         //
-        return "It works!";
+        $title = $request->input('title');
+        $description = $request->input('description');
+        $time = $request->input('time');
+        $user_id = $request->input('user_id');
+
+        $meeting = [
+            'title' => $title,
+            'description' => $description,
+            'time' => $time,
+            'user_id' => $user_id,
+            'view_meeting' => [
+                'href'=> 'api/v1/meeting/1',
+                'method' => 'GET'
+            ]
+        ];
+        $response = [
+            'msg' => 'Meeting created',
+            'meeting' => $meeting
+        ];
+        return response()->json($response, 200);
     }
 
     /**
@@ -56,6 +92,10 @@ class MeetingController extends Controller
     public function update(Request $request, $id)
     {
         //
+        $title = $request->input('title');
+        $description = $request->input('description');
+        $time = $request->input('time');
+        $user_id = $request->input('user_id');
         return "It works!";
     }
 
@@ -67,7 +107,15 @@ class MeetingController extends Controller
      */
     public function destroy($id)
     {
-        //
-        return "It works!";
+        $response = [
+            'msg' => 'Meeting deleted',
+            'created' => [
+                'href' => 'api/v1/meeting',
+                'method' => 'POST',
+                'params' => 'title, description, time'
+            ]            
+        ];
+        
+        return response()->json($response, 200);
     }
 }
