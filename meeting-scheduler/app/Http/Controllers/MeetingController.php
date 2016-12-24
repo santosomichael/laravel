@@ -6,12 +6,15 @@ use Illuminate\Http\Request;
 use App\Meeting;
 use App\User;
 use Carbon\Carbon;
+use JWTAuth;
 
 class MeetingController extends Controller
 {
-    public function __construct() {
-        // $this->midleware('name');
-    }
+    // public function __construct() {
+    //     $this->midleware('jwt.auth', ['only' => [
+    //         'update', 'store', 'destroy'
+    //     ]]);
+    // }
     /**
      * Display a listing of the resource.
      *
@@ -20,10 +23,10 @@ class MeetingController extends Controller
     public function index()
     {
         //
-        $meetings = Meeting::all();
+        $meetings = Meeting::with('users')->get();
         foreach ($meetings as $meeting) {
-            $meeting->$view_meeting = [
-                'href'=> 'api/v1/meeting/'.$meeting->$id,
+            $meeting->view_meeting = [
+                'href'=> 'api/v1/meeting/'.$meeting->id,
                 'method' => 'GET'
             ];
         }
@@ -31,8 +34,7 @@ class MeetingController extends Controller
         $response = [
             'msg' => 'List of all Meeting',
             'meeting' => [
-                $meeting, 
-                $meeting
+                $meetings
             ]
         ];
         return response()->json($response, 200);
@@ -51,11 +53,16 @@ class MeetingController extends Controller
         //     'description' => 'required',            
         //     'user_id' => 'required'
         // ]);
+       
+
+        if (!$user = JWTAuth::parseToken()->authenticate()) {
+            return response()->json(['msg' => 'User not found'], 404);
+        }
 
         $title = $request->input('title');
         $description = $request->input('description');
-        $time = $request->input('time');
-        $user_id = $request->input('user_id');
+        $time = $request->input('time');        
+        $user_id = $user->id;
 
         $meeting = new Meeting ([
             'time' => Carbon::createFromFormat('YmdHie', $time),
@@ -112,22 +119,14 @@ class MeetingController extends Controller
     public function update(Request $request, $id)
     {
         //
+        if (!$user = JWTAuth::parseToken()->authenticate()) {
+            return response()->json(['msg' => 'User not found'], 404);
+        }
+
         $title = $request->input('title');
         $description = $request->input('description');
         $time = $request->input('time');
-        $user_id = $request->input('user_id');
-        
-
-        // $response = [
-        //     'title' => $title,
-        //     'description' => $description,
-        //     'time' => $time,
-        //     'user_id' => $user_id,
-        //     'view_meeting' => [
-        //         'href' => 'api/v1/meeting/'.$id,
-        //         'method' => 'GET'
-        //     ]
-        // ];
+        $user_id = $user->id;
 
         $meeting = Meeting::with('users')->findOrFail($id);
 
@@ -169,6 +168,19 @@ class MeetingController extends Controller
     public function destroy($id)
     {
         $meeting = Meeting::findOrFail($id);
+
+        if (!$user = JWTAuth::parseToken()->authenticate()) {
+            return response()->json(['msg' => 'User not found'], 404);
+        }
+
+        if(!$meeting->users()->where('users.id',$user->id)-> first()) {
+            $failResponse = [
+                'msg'=>'user not registered for meeting, delete not successful'
+            ];
+            return response()->json($failResponse, 401);
+        }
+
+       
         $users = $meeting->users;
         $meeting->users()->detach();
         if (!$meeting->delete()) {

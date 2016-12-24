@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Meeting;
 use App\User;
+use JWTAuth;
 
 class RegistrationController extends Controller
 {
+    $this->midleware('jwt.auth');
     /**
      * Store a newly created resource in storage.
      *
@@ -66,7 +68,18 @@ class RegistrationController extends Controller
     public function destroy($id)
     {        
         $meeting = Meeting::findOrFail($id);
-        $meeting->users()->detach();
+        if (!$user = JWTAuth::parseToken()->authenticate()) {
+            return response()->json(['msg' => 'User not found'], 404);
+        }
+
+        if(!$meeting->users()->where('users.id',$user->id)-> first()) {
+            $failResponse = [
+                'msg'=>'user not registered for meeting, delete not successful'
+            ];
+            return response()->json($failResponse, 401);
+        }
+
+        $meeting->users()->detach($user->id);
         $response = [
             'msg' => 'User unregistered for meeting',
             'meeting' => $meeting,
